@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CropGuard AI — Plant Disease Detection & Crop Health</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              200: '#a7f3d0',
+              300: '#6ee7b7',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(229, 231, 235, 0.7);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+  <!-- Top Navigation -->
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('detect')">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+            <i data-lucide="sprout" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-xl font-bold tracking-tight text-slate-900">CropGuard<span class="text-brand-600">AI</span></span>
+            <span class="hidden sm:inline-block ml-2 text-xs font-semibold px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full border border-brand-200">PlantVillage 38</span>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="flex items-center gap-1 sm:gap-2">
+          <button id="tab-btn-detect" onclick="switchTab('detect')" class="tab-btn active px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 text-brand-700 bg-brand-50">
+            <i data-lucide="scan" class="w-4 h-4"></i>
+            <span>Detector</span>
+          </button>
+          <button id="tab-btn-library" onclick="switchTab('library')" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+            <i data-lucide="book-open" class="w-4 h-4"></i>
+            <span>Disease Library</span>
+          </button>
+          <button id="tab-btn-pesticides" onclick="switchTab('pesticides')" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+            <i data-lucide="shield-alert" class="w-4 h-4"></i>
+            <span>Pesticide Guide</span>
+          </button>
+          <button id="tab-btn-status" onclick="switchTab('status')" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+            <i data-lucide="activity" class="w-4 h-4"></i>
+            <span>Model Health</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- ==================== TAB 1: DETECTOR ==================== -->
+    <section id="tab-detect" class="tab-content block">
+      <!-- Hero Banner -->
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-brand-950 to-slate-900 text-white p-8 sm:p-12 mb-8 shadow-xl">
+        <div class="absolute -right-16 -top-16 w-80 h-80 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="relative z-10 max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-brand-300 text-xs font-medium mb-4 backdrop-blur-sm border border-white/10">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> EfficientNetB0 Deep Learning
+          </div>
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4 leading-tight">
+            Instant Plant Disease Diagnosis & Treatment Recommendations
+          </h1>
+          <p class="text-slate-300 text-base sm:text-lg mb-6 leading-relaxed">
+            Upload or snap a photo of any crop leaf. Our deep learning classifier analyzes 38 distinct crop disease conditions across 14 crop species and suggests targeted pesticide treatments.
+          </p>
+          <div class="flex flex-wrap gap-4 text-xs sm:text-sm text-slate-300">
+            <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-brand-400"></i> 14 Plant Species</div>
+            <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-brand-400"></i> 38 Disease Classes</div>
+            <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-brand-400"></i> Top-K Confidence Analysis</div>
+            <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-brand-400"></i> Integrated Pesticide Matching</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detection Workspace Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Left: Upload Panel (5 cols) -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <h2 class="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
+              <i data-lucide="upload-cloud" class="w-5 h-5 text-brand-600"></i> Leaf Photo Upload
+            </h2>
+            <p class="text-xs text-slate-500 mb-4">Supported formats: JPG, JPEG, PNG, WEBP</p>
+
+            <!-- Dropzone -->
+            <div id="dropzone" 
+                 class="relative border-2 border-dashed border-slate-300 hover:border-brand-500 transition-all rounded-2xl p-6 text-center cursor-pointer bg-slate-50 hover:bg-brand-50/40 group">
+              <input type="file" id="file-input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+              
+              <div id="upload-idle" class="flex flex-col items-center py-6">
+                <div class="w-16 h-16 mb-4 rounded-2xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-brand-600 group-hover:scale-105 transition-all">
+                  <i data-lucide="image-plus" class="w-8 h-8"></i>
+                </div>
+                <p class="text-sm font-semibold text-slate-800 mb-1">Click to browse or drag & drop</p>
+                <p class="text-xs text-slate-400">High-resolution leaf closeup gives best accuracy</p>
+              </div>
+
+              <!-- Preview Zone (hidden by default) -->
+              <div id="upload-preview" class="hidden relative">
+                <img id="preview-img" src="" alt="Selected leaf" class="w-full h-64 object-cover rounded-xl shadow-inner border border-slate-200" />
+                <button type="button" onclick="clearSelectedImage(event)" class="absolute top-3 right-3 bg-slate-900/80 hover:bg-slate-900 text-white p-2 rounded-full shadow-lg backdrop-blur-sm transition-all z-20" title="Remove image">
+                  <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button id="analyze-btn" 
+                    onclick="submitAnalysis()" 
+                    disabled 
+                    class="w-full mt-5 py-3.5 px-4 rounded-xl bg-slate-200 text-slate-400 font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2 cursor-not-allowed">
+              <i data-lucide="cpu" class="w-4 h-4"></i>
+              <span>Analyze Leaf Disease</span>
+            </button>
+
+            <!-- Pre-set Test Samples for fast verification -->
+            <div class="mt-6 pt-6 border-t border-slate-100">
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Need a sample image to test?
+              </label>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <button type="button" onclick="loadSampleImage('tomato_blight')" class="p-2.5 rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50 text-left transition-all">
+                  <p class="font-bold text-slate-800">🍅 Tomato Late Blight</p>
+                  <p class="text-[11px] text-slate-500">Sample preview</p>
+                </button>
+                <button type="button" onclick="loadSampleImage('corn_rust')" class="p-2.5 rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50 text-left transition-all">
+                  <p class="font-bold text-slate-800">🌽 Corn Common Rust</p>
+                  <p class="text-[11px] text-slate-500">Sample preview</p>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Results & Treatment Panel (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+          
+          <!-- Empty State (Before analysis) -->
+          <div id="results-empty" class="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-50 text-brand-600 flex items-center justify-center">
+              <i data-lucide="microscope" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">No Leaf Analyzed Yet</h3>
+            <p class="text-sm text-slate-500 max-w-md mx-auto mb-6">
+              Upload a clear photo of an affected plant leaf on the left, then click "Analyze Leaf Disease" to see instant classification, confidence breakdown, and pesticide solutions.
+            </p>
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 text-xs font-semibold text-slate-600">
+              <i data-lucide="info" class="w-4 h-4 text-brand-600"></i> Model: EfficientNetB0 (PlantVillage 38-class weights)
+            </div>
+          </div>
+
+          <!-- Loading State -->
+          <div id="results-loading" class="hidden bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+            <div class="inline-block animate-spin w-12 h-12 border-4 border-brand-200 border-t-brand-600 rounded-full mb-4"></div>
+            <h3 class="text-lg font-bold text-slate-900 mb-1">Analyzing Leaf Patterns...</h3>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto">
+              Running deep feature extraction through EfficientNetB0 base & softmax classification head...
+            </p>
+          </div>
+
+          <!-- Completed Results Panel -->
+          <div id="results-panel" class="hidden space-y-6">
+            
+            <!-- Diagnosis Highlight Card -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm overflow-hidden relative">
+              <div id="result-status-banner" class="absolute top-0 left-0 right-0 h-2 bg-brand-500"></div>
+
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div>
+                  <span id="result-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-100 text-rose-800">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Disease Detected
+                  </span>
+                  <h3 id="result-title" class="text-2xl font-black text-slate-900 mt-2">Tomato — Late Blight</h3>
+                  <p id="result-subtitle" class="text-xs text-slate-500">Predicted Class: <span class="font-mono text-slate-700 font-semibold" id="result-raw-class">Tomato___Late_blight</span></p>
+                </div>
+                
+                <div class="text-right sm:border-l sm:border-slate-100 sm:pl-6">
+                  <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Confidence</div>
+                  <div id="result-confidence" class="text-3xl font-black text-brand-600">98.4%</div>
+                </div>
+              </div>
+
+              <!-- Confidence Progress Bar -->
+              <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div id="result-confidence-bar" class="bg-gradient-to-r from-brand-500 to-emerald-400 h-full rounded-full transition-all duration-700" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Top-5 Predictions Breakdown -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+              <h4 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <i data-lucide="bar-chart-2" class="w-4 h-4 text-brand-600"></i> Top-5 Predictions Probability
+              </h4>
+              <div id="top-predictions-container" class="space-y-3">
+                <!-- Dynamically generated rows -->
+              </div>
+            </div>
+
+            <!-- Recommended Treatments & Pesticides -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <i data-lucide="shield-check" class="w-4 h-4 text-brand-600"></i> Recommended Chemical & Organic Treatments
+                </h4>
+                <span class="text-xs text-slate-400">Matched from pesticide.csv</span>
+              </div>
+              <div id="pesticide-recommendations-list" class="divide-y divide-slate-100">
+                <!-- Dynamically filled -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Error Alert Banner -->
+          <div id="results-error" class="hidden bg-rose-50 border border-rose-200 rounded-2xl p-6 text-rose-800">
+            <div class="flex items-start gap-3">
+              <i data-lucide="alert-octagon" class="w-6 h-6 text-rose-600 flex-shrink-0 mt-0.5"></i>
+              <div>
+                <h4 class="font-bold text-sm text-rose-900 mb-1" id="error-heading">Prediction Error</h4>
+                <p class="text-xs text-rose-700 leading-relaxed" id="error-message">
+                  The trained model file was not found. Please train the model using python -m src.train.
+                </p>
+                <div class="mt-3 flex gap-2">
+                  <button onclick="switchTab('status')" class="px-3 py-1.5 rounded-lg bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 transition-all">
+                    Check Model Status
+                  </button>
+                  <button onclick="retrySampleDemo()" class="px-3 py-1.5 rounded-lg bg-rose-100 text-rose-800 font-semibold text-xs hover:bg-rose-200 transition-all">
+                    Show Sample Demo Output
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: DISEASE LIBRARY ==================== -->
+    <section id="tab-library" class="tab-content hidden">
+      <div class="mb-8">
+        <h2 class="text-2xl font-extrabold text-slate-900 mb-2">PlantVillage Disease Catalog</h2>
+        <p class="text-sm text-slate-500 max-w-2xl">
+          Browse the 38 recognized conditions across 14 crops supported by the EfficientNetB0 classification pipeline.
+        </p>
+      </div>
+
+      <!-- Filter Controls -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div class="relative w-full md:w-80">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
+          <input type="text" id="library-search" oninput="filterLibrary()" placeholder="Search crop or disease..." class="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 custom-scrollbar">
+          <button onclick="filterCrop('all')" class="crop-filter-btn active px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-600 text-white" data-crop="all">All Crops</button>
+          <button onclick="filterCrop('Tomato')" class="crop-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-crop="Tomato">Tomato (10)</button>
+          <button onclick="filterCrop('Corn')" class="crop-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-crop="Corn">Corn (4)</button>
+          <button onclick="filterCrop('Apple')" class="crop-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-crop="Apple">Apple (4)</button>
+          <button onclick="filterCrop('Grape')" class="crop-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-crop="Grape">Grape (4)</button>
+          <button onclick="filterCrop('Potato')" class="crop-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-crop="Potato">Potato (3)</button>
+          <button onclick="filterCrop('Pepper')" class="crop-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-crop="Pepper">Pepper (2)</button>
+        </div>
+      </div>
+
+      <!-- Disease Cards Grid -->
+      <div id="disease-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: PESTICIDE GUIDE ==================== -->
+    <section id="tab-pesticides" class="tab-content hidden">
+      <div class="mb-8">
+        <h2 class="text-2xl font-extrabold text-slate-900 mb-2">Pesticide & Treatment Database</h2>
+        <p class="text-sm text-slate-500 max-w-2xl">
+          Targeted chemical control recommendations mapped by crop type, pest family, and infestation intensity. Loaded from <code class="bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-mono text-xs">pesticide.csv</code>.
+        </p>
+      </div>
+
+      <!-- Controls -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Crop Filter</label>
+          <select id="pesticide-crop-select" onchange="renderPesticidesTable()" class="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="all">All Crops</option>
+            <option value="rice">Rice</option>
+            <option value="wheat">Wheat</option>
+            <option value="maize">Maize (Corn)</option>
+            <option value="cotton">Cotton</option>
+            <option value="barley">Barley</option>
+            <option value="millet">Millet</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Pest Type</label>
+          <select id="pesticide-pest-select" onchange="renderPesticidesTable()" class="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="all">All Pests</option>
+            <option value="aphid">Aphid</option>
+            <option value="whitefly">Whitefly</option>
+            <option value="caterpillar">Caterpillar</option>
+            <option value="worm">Worm</option>
+            <option value="bug">Bug</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Infestation Level</label>
+          <select id="pesticide-intensity-select" onchange="renderPesticidesTable()" class="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="all">All Intensities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Search</label>
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+            <input type="text" id="pesticide-search" oninput="renderPesticidesTable()" placeholder="e.g. Cypermethrin..." class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+        </div>
+      </div>
+
+      <!-- Table Container -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto max-h-[600px] custom-scrollbar">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider sticky top-0">
+              <tr>
+                <th class="py-3.5 px-6">Crop</th>
+                <th class="py-3.5 px-6">Pest Target</th>
+                <th class="py-3.5 px-6">Infestation Intensity</th>
+                <th class="py-3.5 px-6">Prescribed Active Compound</th>
+                <th class="py-3.5 px-6 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="pesticide-table-body" class="divide-y divide-slate-100">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+        <div class="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex justify-between items-center" id="pesticide-count-footer">
+          <span>Showing treatments</span>
+          <span class="font-mono">1,000 reference entries</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: MODEL HEALTH & STATS ==================== -->
+    <section id="tab-status" class="tab-content hidden space-y-8">
+      <div>
+        <h2 class="text-2xl font-extrabold text-slate-900 mb-2">Model Architecture & Pipeline Status</h2>
+        <p class="text-sm text-slate-500 max-w-2xl">
+          Real-time diagnostics from your backend Flask API (<code class="bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-mono text-xs">GET /api/model-status</code> and <code class="bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-mono text-xs">GET /api/stats</code>).
+        </p>
+      </div>
+
+      <!-- Status Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Model State</div>
+          <div class="flex items-center gap-2">
+            <span id="stat-model-indicator" class="w-3 h-3 rounded-full bg-amber-400"></span>
+            <span id="stat-model-ready" class="text-xl font-black text-slate-900">Checking...</span>
+          </div>
+          <p id="stat-model-desc" class="text-xs text-slate-500 mt-2">Checking outputs/best_model.h5</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Backbone Architecture</div>
+          <div class="text-xl font-black text-slate-900">EfficientNetB0</div>
+          <p class="text-xs text-slate-500 mt-2">ImageNet pre-trained weights</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Dataset Classes</div>
+          <div class="text-xl font-black text-slate-900">38 Classes</div>
+          <p class="text-xs text-slate-500 mt-2">14 Crop species (PlantVillage)</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Input Dimensions</div>
+          <div class="text-xl font-black text-slate-900">224 x 224 x 3</div>
+          <p class="text-xs text-slate-500 mt-2">Standard RGB leaf tensors</p>
+        </div>
+      </div>
+
+      <!-- Training Pipeline Instructions -->
+      <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="terminal" class="w-5 h-5 text-brand-600"></i> How to Train / Retrain the Model
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+          <div class="p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <h4 class="font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-brand-600 text-white inline-flex items-center justify-center text-xs">1</span>
+              Local Training (CLI)
+            </h4>
+            <p class="text-xs text-slate-600">
+              Run from the project root. It will extract <code class="font-mono bg-white px-1">archive.zip</code>, create 80/20 stratified splits, and run Phase 1 (frozen base) + Phase 2 (fine-tuning top 50 layers):
+            </p>
+            <pre class="bg-slate-900 text-brand-300 p-3 rounded-lg text-xs font-mono overflow-x-auto">python main.py train</pre>
+          </div>
+
+          <div class="p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <h4 class="font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-brand-600 text-white inline-flex items-center justify-center text-xs">2</span>
+              Google Colab GPU (Fastest)
+            </h4>
+            <p class="text-xs text-slate-600">
+              Open <code class="font-mono bg-white px-1">colab_train.ipynb</code> in Google Colab with a free T4 GPU. In 15–30 minutes, it trains the model and outputs <code class="font-mono bg-white px-1">best_model.h5</code>.
+            </p>
+            <pre class="bg-slate-900 text-brand-300 p-3 rounded-lg text-xs font-mono overflow-x-auto"># Open colab_train.ipynb on Colab</pre>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-brand-50 border border-brand-200 text-brand-900 text-xs flex items-start gap-3">
+          <i data-lucide="check-circle-2" class="w-5 h-5 text-brand-600 flex-shrink-0 mt-0.5"></i>
+          <div>
+            <strong class="font-semibold">Fullstack UI is Active!</strong>
+            When you run <code class="font-mono bg-brand-100 px-1 py-0.5 rounded text-brand-800">python app.py</code>, this web application connects directly to the backend REST endpoints.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <i data-lucide="sprout" class="w-4 h-4 text-brand-600"></i>
+        <span>CropGuard AI — Plant Disease Detection System</span>
+      </div>
+      <div>
+        <span>Dataset: PlantVillage (54,306 images, 38 classes)</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Script -->
+  <script>
+    // 38 PlantVillage Classes Reference
+    const PV_CLASSES = [
+      "Apple___Apple_scab", "Apple___Black_rot", "Apple___Cedar_apple_rust", "Apple___healthy",
+      "Blueberry___healthy",
+      "Cherry_(including_sour)___Powdery_mildew", "Cherry_(including_sour)___healthy",
+      "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "Corn_(maize)___Common_rust_", "Corn_(maize)___Northern_Leaf_Blight", "Corn_(maize)___healthy",
+      "Grape___Black_rot", "Grape___Esca_(Black_Measles)", "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)", "Grape___healthy",
+      "Orange___Haunglongbing_(Citrus_greening)",
+      "Peach___Bacterial_spot", "Peach___healthy",
+      "Pepper,_bell___Bacterial_spot", "Pepper,_bell___healthy",
+      "Potato___Early_blight", "Potato___Late_blight", "Potato___healthy",
+      "Raspberry___healthy",
+      "Soybean___healthy",
+      "Squash___Powdery_mildew",
+      "Strawberry___Leaf_scorch", "Strawberry___healthy",
+      "Tomato___Bacterial_spot", "Tomato___Early_blight", "Tomato___Late_blight", "Tomato___Leaf_Mold", "Tomato___Septoria_leaf_spot", "Tomato___Spider_mites Two-spotted_spider_mite", "Tomato___Target_Spot", "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "Tomato___Tomato_mosaic_virus", "Tomato___healthy"
+    ];
+
+    let selectedFile = null;
+    let allPesticides = [];
+    let currentCropFilter = 'all';
+
+    // Initialize on load
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      setupUploadEvents();
+      populateDiseaseLibrary();
+      fetchPesticides();
+      checkModelStatus();
+    });
+
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.classList.remove("active", "text-brand-700", "bg-brand-50");
+        btn.classList.add("text-slate-600");
+      });
+
+      const activeSection = document.getElementById("tab-" + tabId);
+      const activeBtn = document.getElementById("tab-btn-" + tabId);
+      if (activeSection) activeSection.classList.remove("hidden");
+      if (activeBtn) {
+        activeBtn.classList.add("active", "text-brand-700", "bg-brand-50");
+        activeBtn.classList.remove("text-slate-600");
+      }
+      lucide.createIcons();
+    }
+
+    // Drag & Drop Setup
+    function setupUploadEvents() {
+      const dropzone = document.getElementById("dropzone");
+      const fileInput = document.getElementById("file-input");
+
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handleFile(e.target.files[0]);
+        }
+      });
+
+      ['dragenter', 'dragover'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          dropzone.classList.add('border-brand-500', 'bg-brand-50/70');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('border-brand-500', 'bg-brand-50/70');
+        });
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          handleFile(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    function handleFile(file) {
+      selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById("preview-img").src = e.target.result;
+        document.getElementById("upload-idle").classList.add("hidden");
+        document.getElementById("upload-preview").classList.remove("hidden");
+        
+        const analyzeBtn = document.getElementById("analyze-btn");
+        analyzeBtn.disabled = false;
+        analyzeBtn.classList.remove("bg-slate-200", "text-slate-400", "cursor-not-allowed");
+        analyzeBtn.classList.add("bg-brand-600", "hover:bg-brand-700", "text-white", "shadow-lg", "shadow-brand-600/30");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearSelectedImage(e) {
+      if (e) e.stopPropagation();
+      selectedFile = null;
+      document.getElementById("file-input").value = "";
+      document.getElementById("preview-img").src = "";
+      document.getElementById("upload-preview").classList.add("hidden");
+      document.getElementById("upload-idle").classList.remove("hidden");
+      
+      const analyzeBtn = document.getElementById("analyze-btn");
+      analyzeBtn.disabled = true;
+      analyzeBtn.classList.add("bg-slate-200", "text-slate-400", "cursor-not-allowed");
+      analyzeBtn.classList.remove("bg-brand-600", "hover:bg-brand-700", "text-white", "shadow-lg", "shadow-brand-600/30");
+    }
+
+    // Submit Analysis to Flask API
+    async function submitAnalysis() {
+      if (!selectedFile) return;
+
+      document.getElementById("results-empty").classList.add("hidden");
+      document.getElementById("results-panel").classList.add("hidden");
+      document.getElementById("results-error").classList.add("hidden");
+      document.getElementById("results-loading").classList.remove("hidden");
+
+      const formData = new FormData();
+      formData.append("image", selectedFile);
+
+      try {
+        const response = await fetch("/api/predict", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+        document.getElementById("results-loading").classList.add("hidden");
+
+        if (response.ok && data.success) {
+          renderPredictionResults(data);
+        } else {
+          showError(data.error || "Analysis failed. Please check if the model is trained.");
+        }
+      } catch (err) {
+        document.getElementById("results-loading").classList.add("hidden");
+        showError("Could not reach backend API at /api/predict. Server might be offline or starting.");
+      }
+    }
+
+    function renderPredictionResults(data) {
+      document.getElementById("results-panel").classList.remove("hidden");
+
+      const top = data.top_prediction;
+      const isHealthy = top.disease.toLowerCase().includes("healthy");
+
+      // Set Banner & Status
+      const badge = document.getElementById("result-badge");
+      const banner = document.getElementById("result-status-banner");
+      
+      if (isHealthy) {
+        badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800";
+        badge.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Healthy Leaf`;
+        banner.className = "absolute top-0 left-0 right-0 h-2 bg-emerald-500";
+      } else {
+        badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-100 text-rose-800";
+        badge.innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Disease Detected`;
+        banner.className = "absolute top-0 left-0 right-0 h-2 bg-rose-500";
+      }
+
+      document.getElementById("result-title").textContent = `${top.crop} — ${top.disease}`;
+      document.getElementById("result-raw-class").textContent = top.class;
+      
+      const pct = (top.confidence * 100).toFixed(1) + "%";
+      document.getElementById("result-confidence").textContent = pct;
+      document.getElementById("result-confidence-bar").style.width = pct;
+
+      // Top 5 Predictions
+      const container = document.getElementById("top-predictions-container");
+      container.innerHTML = "";
+
+      data.predictions.forEach((item, index) => {
+        const itemPct = (item.confidence * 100).toFixed(1);
+        const nameClean = item.class.replace("___", " — ").replace(/_/g, " ");
+        
+        const row = document.createElement("div");
+        row.className = "space-y-1";
+        row.innerHTML = `
+          <div class="flex justify-between text-xs font-medium text-slate-700">
+            <span class="${index === 0 ? 'font-bold text-slate-900' : ''}">${nameClean}</span>
+            <span class="font-mono text-slate-500">${itemPct}%</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div class="${index === 0 ? 'bg-brand-500' : 'bg-slate-300'} h-full rounded-full transition-all duration-500" style="width: ${itemPct}%"></div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      // Pesticides matched
+      const pList = document.getElementById("pesticide-recommendations-list");
+      pList.innerHTML = "";
+
+      if (data.pesticide_info && data.pesticide_info.length > 0) {
+        data.pesticide_info.forEach(pest => {
+          const item = document.createElement("div");
+          item.className = "py-3 flex items-center justify-between gap-4";
+          item.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-50 text-brand-700 flex items-center justify-center font-bold text-xs uppercase">
+                ${pest.crop ? pest.crop[0] : 'C'}
+              </div>
+              <div>
+                <p class="text-sm font-bold text-slate-800">${pest.pesticide}</p>
+                <p class="text-xs text-slate-500">Target: <span class="capitalize font-semibold text-slate-700">${pest.pest_type || 'General'}</span></p>
+              </div>
+            </div>
+            <div>
+              <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${
+                pest.intensity === 'high' ? 'bg-rose-100 text-rose-800' :
+                pest.intensity === 'medium' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
+              }">${pest.intensity || 'Normal'} Intensity</span>
+            </div>
+          `;
+          pList.appendChild(item);
+        });
+      } else {
+        pList.innerHTML = `
+          <div class="py-4 text-center text-xs text-slate-500">
+            ${isHealthy ? 'Plant is diagnosed healthy! No chemical treatment required.' : 'No direct pesticide entry for this specific crop species in pesticide.csv.'}
+          </div>
+        `;
+      }
+
+      lucide.createIcons();
+    }
+
+    function showError(msg) {
+      document.getElementById("results-error").classList.remove("hidden");
+      document.getElementById("error-message").textContent = msg;
+      lucide.createIcons();
+    }
+
+    // Interactive Demo Sample (works even before model completes training)
+    function retrySampleDemo() {
+      const mockData = {
+        success: true,
+        top_prediction: {
+          crop: "Tomato",
+          disease: "Late Blight",
+          class: "Tomato___Late_blight",
+          confidence: 0.9842
+        },
+        predictions: [
+          { class: "Tomato___Late_blight", confidence: 0.9842 },
+          { class: "Tomato___Early_blight", confidence: 0.0124 },
+          { class: "Potato___Late_blight", confidence: 0.0028 },
+          { class: "Tomato___Septoria_leaf_spot", confidence: 0.0004 },
+          { class: "Tomato___healthy", confidence: 0.0002 }
+        ],
+        pesticide_info: [
+          { crop: "Tomato", pest_type: "Fungal Blight", intensity: "high", pesticide: "Chlorothalonil / Mancozeb" },
+          { crop: "Tomato", pest_type: "Late Blight", intensity: "medium", pesticide: "Copper Hydroxide" },
+          { crop: "Tomato", pest_type: "Secondary Infection", intensity: "low", pesticide: "Cypermethrin" }
+        ]
+      };
+      document.getElementById("results-error").classList.add("hidden");
+      renderPredictionResults(mockData);
+    }
+
+    function loadSampleImage(sampleType) {
+      // Create sample synthetic preview leaf canvas
+      const canvas = document.createElement("canvas");
+      canvas.width = 400;
+      canvas.height = 400;
+      const ctx = canvas.getContext("2d");
+
+      // Draw leaf background
+      const grad = ctx.createLinearGradient(0, 0, 400, 400);
+      grad.addColorStop(0, "#2d6a4f");
+      grad.addColorStop(1, "#1b4332");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 400, 400);
+
+      // Draw leaf shape
+      ctx.beginPath();
+      ctx.ellipse(200, 200, 140, 70, Math.PI / 4, 0, 2 * Math.PI);
+      ctx.fillStyle = "#52b788";
+      ctx.fill();
+
+      // Draw disease lesions
+      ctx.fillStyle = sampleType === 'tomato_blight' ? '#402a18' : '#c85a17';
+      for(let i = 0; i < 7; i++) {
+        ctx.beginPath();
+        ctx.arc(150 + i * 20, 160 + (i % 3) * 25, 8 + (i % 4) * 3, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+
+      canvas.toBlob((blob) => {
+        const file = new File([blob], sampleType + ".jpg", { type: "image/jpeg" });
+        handleFile(file);
+      }, "image/jpeg");
+    }
+
+    // Populate Disease Library Tab
+    function populateDiseaseLibrary() {
+      const grid = document.getElementById("disease-cards-grid");
+      grid.innerHTML = "";
+
+      PV_CLASSES.forEach(c => {
+        let [crop, disease] = c.includes("___") ? c.split("___") : [c, ""];
+        disease = disease.replace(/_/g, " ").trim();
+        crop = crop.replace(/_/g, " ").trim();
+        const isHealthy = disease.toLowerCase().includes("healthy");
+
+        const card = document.createElement("div");
+        card.className = "disease-card bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all";
+        card.dataset.crop = crop;
+        card.dataset.name = `${crop} ${disease}`.toLowerCase();
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full ${
+              isHealthy ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+            }">${isHealthy ? 'Healthy' : 'Disease'}</span>
+            <span class="text-[11px] font-mono text-slate-400">Class ID</span>
+          </div>
+          <h4 class="font-bold text-slate-900 text-base mb-1">${disease}</h4>
+          <p class="text-xs text-brand-700 font-semibold mb-3 flex items-center gap-1">
+            <i data-lucide="leaf" class="w-3.5 h-3.5"></i> ${crop}
+          </p>
+          <div class="pt-3 border-t border-slate-100 text-[11px] text-slate-400 font-mono truncate">
+            ${c}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function filterCrop(crop) {
+      currentCropFilter = crop;
+      document.querySelectorAll(".crop-filter-btn").forEach(btn => {
+        if (btn.dataset.crop === crop) {
+          btn.className = "crop-filter-btn active px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-600 text-white";
+        } else {
+          btn.className = "crop-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200";
+        }
+      });
+      filterLibrary();
+    }
+
+    function filterLibrary() {
+      const q = document.getElementById("library-search").value.toLowerCase();
+      document.querySelectorAll(".disease-card").forEach(card => {
+        const matchesCrop = currentCropFilter === 'all' || card.dataset.crop.toLowerCase().includes(currentCropFilter.toLowerCase());
+        const matchesText = card.dataset.name.includes(q);
+        if (matchesCrop && matchesText) {
+          card.classList.remove("hidden");
+        } else {
+          card.classList.add("hidden");
+        }
+      });
+    }
+
+    // Fetch and Populate Pesticides Tab
+    async function fetchPesticides() {
+      try {
+        const res = await fetch("/api/pesticides");
+        const data = await res.json();
+        if (data.success && data.pesticides) {
+          allPesticides = data.pesticides;
+          renderPesticidesTable();
+        }
+      } catch (e) {
+        console.warn("Could not load pesticide API, using fallback data");
+      }
+    }
+
+    function renderPesticidesTable() {
+      const crop = document.getElementById("pesticide-crop-select").value.toLowerCase();
+      const pest = document.getElementById("pesticide-pest-select").value.toLowerCase();
+      const intensity = document.getElementById("pesticide-intensity-select").value.toLowerCase();
+      const search = document.getElementById("pesticide-search").value.toLowerCase();
+
+      const tbody = document.getElementById("pesticide-table-body");
+      tbody.innerHTML = "";
+
+      const filtered = allPesticides.filter(item => {
+        const matchCrop = crop === 'all' || (item.crop && item.crop.toLowerCase() === crop);
+        const matchPest = pest === 'all' || (item.pest_type && item.pest_type.toLowerCase() === pest);
+        const matchIntensity = intensity === 'all' || (item.intensity && item.intensity.toLowerCase() === intensity);
+        const matchSearch = !search || 
+          (item.pesticide && item.pesticide.toLowerCase().includes(search)) ||
+          (item.crop && item.crop.toLowerCase().includes(search));
+        return matchCrop && matchPest && matchIntensity && matchSearch;
+      });
+
+      const displayList = filtered.slice(0, 150); // limit to 150 for smooth render
+
+      displayList.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50/80 transition-colors";
+        tr.innerHTML = `
+          <td class="py-3 px-6 font-semibold text-slate-800 capitalize">${item.crop || '-'}</td>
+          <td class="py-3 px-6 text-slate-600 capitalize">${item.pest_type || '-'}</td>
+          <td class="py-3 px-6">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${
+              item.intensity === 'high' ? 'bg-rose-100 text-rose-800' :
+              item.intensity === 'medium' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
+            }">${item.intensity || 'Normal'}</span>
+          </td>
+          <td class="py-3 px-6 font-mono font-bold text-brand-700">${item.pesticide || '-'}</td>
+          <td class="py-3 px-6 text-right">
+            <button onclick="copyToClipboard('${item.pesticide}')" class="text-xs text-slate-400 hover:text-brand-600 font-semibold">Copy</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("pesticide-count-footer").innerHTML = `
+        <span>Showing ${displayList.length} of ${filtered.length} matched treatments</span>
+        <span class="font-mono">${allPesticides.length} total entries</span>
+      `;
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text);
+      alert(`Copied "${text}" to clipboard!`);
+    }
+
+    // Check Model Status
+    async function checkModelStatus() {
+      try {
+        const res = await fetch("/api/model-status");
+        const data = await res.json();
+
+        const indicator = document.getElementById("stat-model-indicator");
+        const readyText = document.getElementById("stat-model-ready");
+        const descText = document.getElementById("stat-model-desc");
+
+        if (data.ready) {
+          indicator.className = "w-3 h-3 rounded-full bg-emerald-500 animate-pulse";
+          readyText.textContent = "Trained & Ready";
+          readyText.className = "text-xl font-black text-emerald-600";
+          descText.textContent = `best_model.h5 loaded (${data.model_size_mb || 0} MB)`;
+        } else {
+          indicator.className = "w-3 h-3 rounded-full bg-amber-400";
+          readyText.textContent = "Pending Weights";
+          readyText.className = "text-xl font-black text-amber-600";
+          descText.textContent = "Run training script to compile best_model.h5";
+        }
+      } catch (e) {
+        console.warn("Could not check model health");
+      }
+    }
+  </script>
+</body>
+</html>

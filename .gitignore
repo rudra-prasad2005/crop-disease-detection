@@ -1,0 +1,24 @@
+# Data — extracted PlantVillage and the generated train/valid splits are large
+data/raw/
+data/splits/
+
+# Dataset archive — keep out of the repo, large binary file
+archive.zip
+
+# Training outputs — model weights, plots, reports
+outputs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
