@@ -56,6 +56,11 @@ def main():
     _, valid_ds, scanned_names = build_datasets()
     valid_ds = prepare(valid_ds, training=False)
     class_names = _load_class_names() or scanned_names
+    if class_names != scanned_names:
+        raise ValueError(
+            "Saved class-name order does not match the validation directory "
+            "class order. Rebuild class_names.json by retraining."
+        )
 
     # 2. Load the trained model
     import tensorflow as tf
@@ -66,6 +71,11 @@ def main():
         )
     model = tf.keras.models.load_model(config.MODEL_PATH)
     print(f"[eval] Loaded {config.MODEL_PATH}.")
+    if model.output_shape[-1] != len(class_names):
+        raise ValueError(
+            f"Model has {model.output_shape[-1]} outputs but "
+            f"{len(class_names)} class names were loaded."
+        )
 
     # 3. Predict
     print("[eval] Running inference on the validation set...")
@@ -77,6 +87,18 @@ def main():
 
     y_pred_probs = model.predict(valid_ds, verbose=1)
     y_pred_idx = np.argmax(y_pred_probs, axis=1)
+    predicted_counts = np.bincount(y_pred_idx, minlength=len(class_names))
+    dominant_share = predicted_counts.max() / len(y_pred_idx)
+    print(
+        f"[eval] Predicted classes: {np.count_nonzero(predicted_counts)}/"
+        f"{len(class_names)}; largest class share: {dominant_share:.2%}"
+    )
+    if dominant_share >= 0.99:
+        print(
+            "[eval] WARNING: predictions have collapsed to one class. "
+            "Check that the checkpoint, class-name ordering, and raw [0, 255] "
+            "input contract match the model used for training."
+        )
 
     # 4. Overall accuracy
     acc = accuracy_score(y_true_idx, y_pred_idx)

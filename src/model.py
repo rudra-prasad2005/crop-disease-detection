@@ -68,9 +68,10 @@ def build_model(num_classes: int,
                 dropout: float = config.DROPOUT):
     """Assemble the model: preprocessing → Base → GAP → Dropout → Dense.
 
-    Preprocessing must match the selected Keras application. EfficientNet
-    includes its own rescaling layer and expects pixels in [0, 255], while
-    MobileNetV2 expects pixels normalized to [-1, 1].
+    The public model input is always RGB pixels in [0, 255]. EfficientNetB0's
+    built-in preprocessing handles that range; MobileNetV2 receives an
+    in-graph conversion to [-1, 1]. Keep this contract the same for training,
+    evaluation, and single-image inference.
 
     Augmentation is intentionally NOT inside the model graph — Keras 3
     deepcopies the trainer at the start of `model.fit()`, and the random
@@ -87,7 +88,7 @@ def build_model(num_classes: int,
             1.0 / 127.5, offset=-1, name="mobilenetv2_preprocessing"
         )(inputs)
     else:
-        # EfficientNet contains its own Rescaling layer and expects [0, 255].
+        # EfficientNetB0 contains its own preprocessing and expects [0, 255].
         x = inputs
 
     base.trainable = False  # Phase 1 starts with the base frozen.
@@ -176,8 +177,8 @@ def get_callbacks(phase: int, ckpt_path):
             monitor="val_accuracy", patience=5, restore_best_weights=True,
             verbose=1, mode="max",
         ),
-        # Save best per-phase; the final phase's best is what we ship as
-        # `best_model.h5` at the end of train.py.
+        # Save the best checkpoint from each phase; train.py promotes the
+        # Phase 2 checkpoint to the configured model path.
         tf.keras.callbacks.ModelCheckpoint(
             filepath=str(phase_ckpt), monitor="val_accuracy",
             save_best_only=True, save_weights_only=False, verbose=1, mode="max",

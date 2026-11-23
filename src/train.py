@@ -15,7 +15,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 from . import config
-from .data import prepare_all
+from .data import apply_class_weights, class_weights_from_counts, prepare_all
 from .model import build_model, compile_for_phase, get_callbacks, unfreeze_top_layers
 from .utils import set_seed
 
@@ -59,6 +59,16 @@ def main():
     # 1. Data
     train_ds, valid_ds, class_names, augment_fn = prepare_all()
     num_classes = len(class_names)
+    train_counts = [
+        sum(1 for path in (config.TRAIN_DIR / name).iterdir() if path.is_file())
+        for name in class_names
+    ]
+    class_weights = class_weights_from_counts(train_counts)
+    train_ds = apply_class_weights(train_ds, class_weights)
+    print(
+        "[train] Applied inverse-square-root class weights "
+        f"(range {class_weights.min():.3f}-{class_weights.max():.3f})."
+    )
 
     # Persist class names for predict.py / evaluate.py to load.
     config.CLASS_NAMES_JSON.parent.mkdir(parents=True, exist_ok=True)
@@ -91,6 +101,8 @@ def main():
     print("\n[train] ===== Phase 2: fine-tuning top of base =====")
     n_unfrozen = unfreeze_top_layers(model, config.FINE_TUNE_AT)
     print(f"[train] Unfroze the last {n_unfrozen} layers of the base.")
+    # Recompile with a fresh low-LR optimizer. This resets optimizer moments,
+    # not model weights, so the Phase 1 classifier head is preserved.
     compile_for_phase(model, config.PHASE2_LR)
 
     callbacks, phase2_ckpt = get_callbacks(phase=2, ckpt_path=config.MODEL_PATH)
@@ -103,19 +115,24 @@ def main():
         verbose=1,
     )
 
-    # 5. Keep whichever phase achieved the best validation accuracy.
-    import shutil
-    phase1_accuracy = max(h1.history["val_accuracy"])
-    phase2_accuracy = max(h2.history["val_accuracy"])
-    best_checkpoint = (
-        phase1_ckpt if phase1_accuracy >= phase2_accuracy else phase2_ckpt
-    )
-    shutil.copy2(best_checkpoint, config.MODEL_PATH)
+    # 5. Restore and promote the exact best Phase 2 checkpoint.
+    import tensorflow as tf
+
+    if not phase2_ckpt.is_file():
+        raise FileNotFoundError(
+            f"Phase 2 did not produce its best-model checkpoint: {phase2_ckpt}"
+        )
+    best_model = tf.keras.models.load_model(phase2_ckpt, compile=False)
+    if best_model.output_shape[-1] != num_classes:
+        raise ValueError(
+            f"Phase 2 checkpoint has {best_model.output_shape[-1]} outputs; "
+            f"expected {num_classes}."
+        )
+    best_model.save(config.MODEL_PATH)
     print(f"[train] Saved final model -> {config.MODEL_PATH}")
     print(
-        f"[train] Best validation accuracy: "
-        f"{max(phase1_accuracy, phase2_accuracy):.4f} "
-        f"(phase {1 if best_checkpoint == phase1_ckpt else 2})"
+        f"[train] Best Phase 2 validation accuracy: "
+        f"{max(h2.history['val_accuracy']):.4f}"
     )
 
     # 6. Plot

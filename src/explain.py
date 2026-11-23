@@ -25,35 +25,41 @@ from .utils import set_seed
 
 def _make_grad_model(model: tf.keras.Model, last_conv_layer_name: str):
     """Return a sub-model that outputs (conv feature map, predictions)."""
-    import tensorflow as tf
-    
-    # 1. Locate the nested pre-trained model (index 2: Input -> Rescaling -> Base)
-    base_model = model.get_layer(index=2)
-    
-    # 2. Build an inner model that gives both the conv layer output and the final base output
-    inner_grad_model = tf.keras.Model(
-        inputs=base_model.inputs, 
-        outputs=[base_model.get_layer(last_conv_layer_name).output, base_model.output]
+    base_model = next(
+        (layer for layer in model.layers if isinstance(layer, tf.keras.Model)),
+        None,
     )
-    
-    # 3. Reconstruct the full model architecture using our custom layers
-    inputs = tf.keras.Input(shape=(224, 224, 3))
-    x = model.get_layer("rescaling")(inputs)
-    
-    # Extract both the intermediate heatmap tensor and the final image features
+    if base_model is None:
+        raise ValueError("Could not locate the nested backbone in the loaded model.")
+
+    base_index = next(
+        index for index, layer in enumerate(model.layers) if layer is base_model
+    )
+    inner_grad_model = tf.keras.Model(
+        inputs=base_model.inputs,
+        outputs=[
+            base_model.get_layer(last_conv_layer_name).output,
+            base_model.output,
+        ],
+    )
+
+    inputs = tf.keras.Input(shape=tuple(model.input_shape[1:]))
+    x = inputs
+    for layer in model.layers[1:base_index]:
+        x = layer(x)
+
     conv_output, base_output = inner_grad_model(x)
-    
-    # 4. Pass the features through our custom classification head
-    x = model.get_layer("gap")(base_output)
-    x = model.get_layer("head_dropout")(x)
-    outputs = model.get_layer("predictions")(x)
-    
+
+    x = base_output
+    for layer in model.layers[base_index + 1:]:
+        x = layer(x)
+
+    outputs = x
     return tf.keras.Model(inputs, [conv_output, outputs])
 
 
 def _gradcam(grad_model, img_array, pred_index=None):
-    """Compute the Grad-CAM heatmap for a single image (already 224x224x3,
-    in [0, 1] float32)."""
+    """Compute Grad-CAM for one raw RGB [0, 255] image."""
     with tf.GradientTape() as tape:
         # The model returns [conv_map, softmax_preds].
         conv_output, preds = grad_model(tf.expand_dims(img_array, axis=0))
@@ -113,7 +119,13 @@ def main():
     print(f"[gradcam] Loaded {config.MODEL_PATH}.")
 
     # 3. Locate the last conv layer and build a gradient model.
-    last_conv = last_conv_layer_name(model.get_layer(index=2))
+    base_model = next(
+        (layer for layer in model.layers if isinstance(layer, tf.keras.Model)),
+        None,
+    )
+    if base_model is None:
+        raise ValueError("Could not locate the nested backbone in the loaded model.")
+    last_conv = last_conv_layer_name(base_model)
     print(f"[gradcam] Hooking into last conv layer: {last_conv}")
     grad_model = _make_grad_model(model, last_conv)
 

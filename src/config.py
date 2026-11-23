@@ -36,13 +36,17 @@ VALID_DIR: Path = SPLIT_DIR / "valid"
 SOURCE_VARIANT: str = "color"
 RAW_COLOR_DIR: Path = RAW_DIR / "plantvillage dataset" / SOURCE_VARIANT
 
-# All generated artifacts (model, plots, reports, grad-cam) land here.
+# Model artifacts are tracked alongside the source model. Training reports and
+# visualizations are generated under outputs/.
+MODELS_DIR: Path = PROJECT_ROOT / "models"
+MODEL_PATH: Path = MODELS_DIR / "plant_disease.keras"
+CLASS_NAMES_JSON: Path = MODELS_DIR / "class_names.json"
+
+# Generated artifacts (plots, reports, grad-cam) land here.
 OUTPUT_DIR: Path = PROJECT_ROOT / "outputs"
-MODEL_PATH: Path = OUTPUT_DIR / "best_model.h5"
 CURVES_PATH: Path = OUTPUT_DIR / "training_curves.png"
 CONFUSION_PATH: Path = OUTPUT_DIR / "confusion_matrix.png"
 REPORT_PATH: Path = OUTPUT_DIR / "classification_report.txt"
-CLASS_NAMES_JSON: Path = OUTPUT_DIR / "class_names.json"
 GRADCAM_DIR: Path = OUTPUT_DIR / "gradcam"
 
 # Sidecar reference data (kept from the original directory listing).
@@ -66,9 +70,8 @@ TRAIN_SPLIT: float = 0.80  # 80/20 train/valid split per class
 # ---------------------------------------------------------------------------
 # Model
 # ---------------------------------------------------------------------------
-# EfficientNetB0 is the brief's primary suggestion and gives better accuracy
-# than MobileNetV2 at the same input size. Set to "MobileNetV2" to switch.
-BASE_MODEL_NAME: str = "EfficientNetB0"
+# The imported trained checkpoint uses MobileNetV2.
+BASE_MODEL_NAME: str = "MobileNetV2"
 DROPOUT: float = 0.3
 
 
@@ -79,7 +82,7 @@ PHASE1_EPOCHS: int = 10
 PHASE1_LR: float = 1e-3
 
 # Negative value = "unfreeze the last |FINE_TUNE_AT| layers".
-# EfficientNetB0 has ~237 layers; unfreezing the top 50 is a common sweet spot.
+# MobileNetV2 has ~155 layers; unfreezing the top 50 is a common sweet spot.
 FINE_TUNE_AT: int = -50
 
 PHASE2_EPOCHS: int = 10
@@ -98,3 +101,4 @@ NUM_GRADCAM_SAMPLES: int = 5
 # ---------------------------------------------------------------------------
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 GRADCAM_DIR.mkdir(parents=True, exist_ok=True)
+MODELS_DIR.mkdir(parents=True, exist_ok=True)

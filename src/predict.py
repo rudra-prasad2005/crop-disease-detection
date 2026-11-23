@@ -4,12 +4,11 @@ Run with:
     python -m src.predict path/to/leaf.jpg
     python -m src.predict path/to/leaf.jpg --top-k 5
 
-Loads the trained model from `outputs/best_model.h5` and the class names from
-`outputs/class_names.json`. Rescales + resizes the input image, runs a single
-forward pass, and prints the top-K predictions.
+Loads the trained model from `models/plant_disease.keras` and class names from
+`models/class_names.json`. Resizes an RGB image and passes raw [0, 255] pixels;
+the model owns all backbone preprocessing.
 
-The model already contains the `Rescaling(1./255)` layer, so we only need to
-cast to float32 and resize — no preprocessing script required.
+No external scaling or normalization is applied.
 """
 from __future__ import annotations
 

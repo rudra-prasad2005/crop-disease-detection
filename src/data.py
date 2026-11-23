@@ -11,7 +11,6 @@ import zipfile
 from pathlib import Path
 
 import numpy as np
-from tqdm import tqdm
 
 from . import config
 from .utils import is_empty_dir, set_seed
@@ -135,6 +134,7 @@ def build_datasets(img_size: tuple[int, int] = config.IMG_SIZE,
     )
 
     train_kwargs = dict(common_kwargs)
+    train_kwargs["shuffle"] = True
     valid_kwargs = dict(common_kwargs)
     valid_kwargs["shuffle"] = False  # reproducible evaluation order
 
@@ -204,6 +204,34 @@ def prepare(ds, training: bool = False, augment_fn=None):
         if augment_fn is not None:
             ds = ds.map(augment_fn, num_parallel_calls=tf.data.AUTOTUNE)
     return ds.prefetch(tf.data.AUTOTUNE)
+
+
+def class_weights_from_counts(class_counts) -> np.ndarray:
+    """Return mild inverse-square-root weights with mean sample weight 1."""
+    counts = np.asarray(class_counts, dtype=np.float64)
+    if counts.ndim != 1 or counts.size == 0 or np.any(counts <= 0):
+        raise ValueError("class_counts must be a non-empty sequence of positive counts.")
+
+    weights = np.sqrt(counts.max() / counts)
+    weights /= np.average(weights, weights=counts)
+    return weights.astype(np.float32)
+
+
+def apply_class_weights(ds, class_weights):
+    """Attach per-example weights to a one-hot labeled dataset."""
+    import tensorflow as tf
+
+    weights = tf.constant(class_weights, dtype=tf.float32)
+
+    def add_sample_weight(images, labels):
+        sample_weights = tf.reduce_sum(
+            tf.cast(labels, tf.float32) * weights, axis=-1
+        )
+        return images, labels, sample_weights
+
+    return ds.map(add_sample_weight, num_parallel_calls=tf.data.AUTOTUNE).prefetch(
+        tf.data.AUTOTUNE
+    )
 
 
 # ---------------------------------------------------------------------------
